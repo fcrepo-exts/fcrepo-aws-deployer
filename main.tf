@@ -3,6 +3,64 @@ provider "aws" {
   region     = "${var.aws_region}"
 }
 
+resource "aws_iam_role" "fcrepo" {
+  name = "fcrepo_role"
+  force_detach_policies = true
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+
+  tags = {
+    Name = "fcrepo_role"
+  }
+}
+
+data "aws_iam_policy" "aws_beanstalk_web_tier" {
+  arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier"
+}
+
+data "aws_iam_policy" "aws_beanstalk_multicontainer_docker" {
+  arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker"
+}
+
+data "aws_iam_policy" "aws_beanstalk_worker_tier" {
+  arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier"
+}
+
+resource "aws_iam_role_policy_attachment" "attach_web_tier" {
+  role       = aws_iam_role.fcrepo.name
+  policy_arn = data.aws_iam_policy.aws_beanstalk_web_tier.arn
+}
+
+resource "aws_iam_role_policy_attachment" "attach_docker" {
+  role       = aws_iam_role.fcrepo.name
+  policy_arn = data.aws_iam_policy.aws_beanstalk_multicontainer_docker.arn
+}
+
+resource "aws_iam_role_policy_attachment" "attach_worker_tier" {
+  role       = aws_iam_role.fcrepo.name
+  policy_arn = data.aws_iam_policy.aws_beanstalk_worker_tier.arn
+}
+
+
+resource "aws_iam_instance_profile" "fcrepo" {
+  name = "fcrepo_instance_profile"
+  role = "${aws_iam_role.fcrepo.name}"
+}
+
+
 resource "aws_vpc" "fcrepo" {
  cidr_block  = "10.0.0.0/16"
  enable_dns_hostnames =  true
@@ -205,7 +263,7 @@ resource "aws_elastic_beanstalk_environment" "fcrepo" {
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "IamInstanceProfile"
-    value     = "aws-elasticbeanstalk-ec2-role"
+    value     = "${aws_iam_instance_profile.fcrepo.name}"
   }
 
   setting {
