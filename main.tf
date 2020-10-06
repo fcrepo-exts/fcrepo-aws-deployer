@@ -1,6 +1,6 @@
 provider "aws" {
-  profile    = "${var.aws_profile}"
-  region     = "${var.aws_region}"
+  profile    = var.aws_profile
+  region     = var.aws_region
 }
 
 resource "aws_iam_role" "fcrepo" {
@@ -57,7 +57,7 @@ resource "aws_iam_role_policy_attachment" "attach_worker_tier" {
 
 resource "aws_iam_instance_profile" "fcrepo" {
   name = "fcrepo_instance_profile"
-  role = "${aws_iam_role.fcrepo.name}"
+  role = aws_iam_role.fcrepo.name
 }
 
 
@@ -98,7 +98,7 @@ resource "aws_route_table" "fcrepo" {
 
 resource "aws_db_subnet_group" "fcrepo_db_subnet_group" {
   name       = "fcrepo_db_subnet_group"
-  subnet_ids = ["${aws_subnet.fcrepo.id}", "${aws_subnet.fcrepo_b.id}"]
+  subnet_ids = [aws_subnet.fcrepo.id, aws_subnet.fcrepo_b.id]
 
   tags = {
     Name = "fcrepo_db_subnet_group"
@@ -106,12 +106,12 @@ resource "aws_db_subnet_group" "fcrepo_db_subnet_group" {
 }
 
 resource "aws_security_group" "fcrepo_database" {
-  vpc_id = "${aws_vpc.fcrepo.id}"
+  vpc_id = aws_vpc.fcrepo.id
 
   ingress {
     cidr_blocks = ["10.0.0.0/24"]
-    from_port   = "${var.db_port}"
-    to_port   = "${var.db_port}"
+    from_port   = var.db_port
+    to_port   = var.db_port
     protocol    = "tcp"
   }
 
@@ -132,13 +132,13 @@ resource "aws_db_instance" "fcrepo" {
   depends_on           = [aws_db_subnet_group.fcrepo_db_subnet_group]
   allocated_storage    = 20
   storage_type         = "gp2"
-  engine               = "${var.db_engine}"
-  engine_version       = "${var.db_version}"
-  port                 = "${var.db_port}" 
-  instance_class       = "${var.db_instance_class}"
+  engine               = var.db_engine
+  engine_version       = var.db_version
+  port                 = var.db_port
+  instance_class       = var.db_instance_class
   name                 = "fcrepo" 
-  username             = "${var.db_username}"
-  password             = "${var.db_password}"
+  username             = var.db_username
+  password             = var.db_password
   db_subnet_group_name = "fcrepo_db_subnet_group"
   vpc_security_group_ids =  [ aws_security_group.fcrepo_database.id ]
   skip_final_snapshot  = "true"
@@ -151,14 +151,14 @@ resource "aws_db_instance" "fcrepo" {
 
 
 resource "aws_route_table_association" "fcrepo" {
-  subnet_id      = "${aws_subnet.fcrepo.id}"
-  route_table_id = "${aws_route_table.fcrepo.id}"
+  subnet_id      = aws_subnet.fcrepo.id
+  route_table_id = aws_route_table.fcrepo.id
 }
 
 resource "aws_route" "route2igc" {
-  route_table_id            = "${aws_route_table.fcrepo.id}"
+  route_table_id            = aws_route_table.fcrepo.id
   destination_cidr_block    = "0.0.0.0/0"
-  gateway_id                = "${aws_internet_gateway.fcrepo.id}"
+  gateway_id                = aws_internet_gateway.fcrepo.id
 }
 
 resource "aws_internet_gateway" "fcrepo" {
@@ -166,7 +166,7 @@ resource "aws_internet_gateway" "fcrepo" {
 }
 
 resource "aws_security_group" "fcrepo" {
-  vpc_id = "${aws_vpc.fcrepo.id}"
+  vpc_id = aws_vpc.fcrepo.id
 
   ingress {
     cidr_blocks = ["0.0.0.0/0"]
@@ -233,13 +233,13 @@ resource "aws_elastic_beanstalk_environment" "fcrepo" {
   setting {
     namespace = "aws:ec2:vpc"
     name      = "VPCId"
-    value     = "${aws_vpc.fcrepo.id}"
+    value     = aws_vpc.fcrepo.id
   }
 
   setting {
     namespace = "aws:ec2:vpc"
     name      = "Subnets"
-    value     = "${aws_subnet.fcrepo.id}"
+    value     = aws_subnet.fcrepo.id
   }
 
   setting {
@@ -257,19 +257,19 @@ resource "aws_elastic_beanstalk_environment" "fcrepo" {
   setting {
     namespace = "aws:ec2:instances"
     name      = "InstanceTypes"
-    value     = "${var.instance_class}"
+    value     = var.instance_class
   }
 
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "IamInstanceProfile"
-    value     = "${aws_iam_instance_profile.fcrepo.name}"
+    value     = aws_iam_instance_profile.fcrepo.name
   }
 
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "EC2KeyName"
-    value     = "${var.ec2_keypair}"
+    value     = var.ec2_keypair
   }
 
   setting {
@@ -281,12 +281,12 @@ resource "aws_elastic_beanstalk_environment" "fcrepo" {
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "FCREPO_DB_USERNAME"
-    value     = "${aws_db_instance.fcrepo.username}"
+    value     = aws_db_instance.fcrepo.username
   }
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "FCREPO_DB_PASSWORD"
-    value     = "${aws_db_instance.fcrepo.password}"
+    value     = aws_db_instance.fcrepo.password
   }
 }
