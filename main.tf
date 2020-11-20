@@ -132,7 +132,7 @@ resource "aws_db_instance" "fcrepo" {
   depends_on           = [aws_db_subnet_group.fcrepo_db_subnet_group]
   allocated_storage    = 20
   storage_type         = "gp2"
-  engine               = var.db_engine
+  engine               = var.db_engine == "postgresql" ?  "postgres" :  var.db_engine
   engine_version       = var.db_version
   port                 = var.db_port
   instance_class       = var.db_instance_class
@@ -195,14 +195,33 @@ resource "aws_cloudwatch_log_group" "fcrepo" {
   }
 }
 
+resource "null_resource" "prepare_beanstalk_zip" {
+  provisioner "local-exec" {
+    command = <<EOT
+                mkdir output
+		sed "s/{{fcrepo.version}}/$FCREPO_VERSION/g" elasticbeanstalk/Dockerrun.aws.json.template > output/Dockerrun.aws.json
+                cd output
+                zip fcrepo-$FCREPO_VERSION-eb-docker.zip Dockerrun.aws.json
+  EOT
+      environment = {
+         FCREPO_VERSION = "${var.fcrepo_version}"
+      }
+  }
+}
+
 resource "aws_s3_bucket" "default" {
-  bucket = "fcrepo-aws-deploy.fcrepo-artifacts"
+  depends_on = [null_resource.prepare_beanstalk_zip]
+  bucket = var.aws_artifact_bucket_name
+  acl    = "private"
+  tags = {
+    Name        = "Fedora EB artifacts"
+  }
 }
 
 resource "aws_s3_bucket_object" "eb_docker_zip" {
   bucket = aws_s3_bucket.default.id
-  key    = "fcrepo-6.0.0-SNAPSHOT-eb-docker.zip"
-  source = "elasticbeanstalk/fcrepo-6.0.0-SNAPSHOT-eb-docker.zip"
+  key    = "fcrepo-${var.fcrepo_version}-eb-docker.zip"
+  source = "output/fcrepo-${var.fcrepo_version}-eb-docker.zip"
 }
 
 
@@ -216,7 +235,7 @@ resource "aws_elastic_beanstalk_application" "fcrepo" {
 }
 
 resource "aws_elastic_beanstalk_application_version" "default" {
-  name        = "6.0.0-SNAPSHOT"
+  name        = "fcrepo_application_version"
   application = aws_elastic_beanstalk_application.fcrepo.name
   description = "application version created by terraform"
   bucket      = aws_s3_bucket.default.id
@@ -228,7 +247,7 @@ resource "aws_elastic_beanstalk_environment" "fcrepo" {
   depends_on =  [aws_elastic_beanstalk_application_version.default]
   name                = "fcrepo-test-env"
   application         = aws_elastic_beanstalk_application.fcrepo.name
-  solution_stack_name = "64bit Amazon Linux 2 v3.1.2 running Docker"
+  solution_stack_name = "64bit Amazon Linux 2 v3.2.1 running Docker"
   version_label = aws_elastic_beanstalk_application_version.default.name
   setting {
     namespace = "aws:ec2:vpc"
@@ -274,19 +293,8 @@ resource "aws_elastic_beanstalk_environment" "fcrepo" {
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "FCREPO_DB_URL"
-    value     = "jdbc:${var.db_engine}://${aws_db_instance.fcrepo.endpoint}/${aws_db_instance.fcrepo.name}"
+    name      = "CATALINA_OPTS"
+    value     = "-Dfcrepo.db.url=jdbc:${var.db_engine}://${aws_db_instance.fcrepo.endpoint}/${aws_db_instance.fcrepo.name} -Dfcrepo.db.user=${aws_db_instance.fcrepo.username} -Dfcrepo.db.password=${aws_db_instance.fcrepo.password}"
   }
 
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "FCREPO_DB_USERNAME"
-    value     = aws_db_instance.fcrepo.username
-  }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "FCREPO_DB_PASSWORD"
-    value     = aws_db_instance.fcrepo.password
-  }
 }
