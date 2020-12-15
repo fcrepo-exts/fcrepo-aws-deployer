@@ -1,6 +1,6 @@
 # fcrepo-aws-deployer
 A terraform script for automatically deploying a Fedora repository to AWS.
-By default, Fedora is deployed on a t3.small instance and is backed by mysql 8.0 hosted in RDS on
+By default, Fedora is deployed on a t3.small instance and is backed by postgresql 12.3  hosted in RDS on
 a db.t2.micro instance.
 
 ## Requirements
@@ -19,9 +19,11 @@ Then set up an aws profile in ~/.aws/config
 
 ## Deploy Fedora
 ```
-terraform apply -var 'aws_profile=<your profile>'  -var 'ec2_keypair=<your ec2 keypair name>'
+terraform apply -var 'aws_profile=<your profile>'  -var 'ec2_keypair=<your ec2 keypair name>' -var 'aws_artifact_bucket_name=<your bucket name>'
 ```
-## Tear it ddown
+NB: make sure that the  aws  bucket you designate does not already exist and do not anything in that bucket that you do not want deleted on teardown.
+
+## Tear it down
 ```
 terraform destroy -var 'aws_profile=<your profile>' -var 'ec2_keypair=<your ec2 keypair name>'
 ```

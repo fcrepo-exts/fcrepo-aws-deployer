@@ -1,0 +1,14 @@
+{
+  "AWSEBDockerrunVersion": "1",
+  "Logging": "/var/log",
+  "Image": {
+        "Name": "fcrepo/fcrepo:{{fcrepo.version}}",
+  	"Update": "true"
+  },
+  "Ports": [
+    {
+      "ContainerPort": 8080,
+      "HostPort": 80
+    }
+  ]
+}
