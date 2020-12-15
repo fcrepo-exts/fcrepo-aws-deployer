@@ -247,7 +247,7 @@ resource "aws_elastic_beanstalk_environment" "fcrepo" {
   depends_on =  [aws_elastic_beanstalk_application_version.default]
   name                = "fcrepo-test-env"
   application         = aws_elastic_beanstalk_application.fcrepo.name
-  solution_stack_name = "64bit Amazon Linux 2 v3.2.1 running Docker"
+  solution_stack_name = "64bit Amazon Linux 2 v3.2.2 running Docker"
   version_label = aws_elastic_beanstalk_application_version.default.name
   setting {
     namespace = "aws:ec2:vpc"
