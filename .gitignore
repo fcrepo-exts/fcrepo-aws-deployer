@@ -3,4 +3,3 @@ terraform.tfstate*
 .aws
 .idea
 output
-keys

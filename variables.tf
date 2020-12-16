@@ -1,3 +1,7 @@
+//
+//
+//
+
 variable "aws_profile" {
   description = "name of the aws profile"
 }
@@ -15,11 +19,6 @@ variable "app_name" {
 variable "app_environment" {
   description = "The application environment"
   default     = "staging"
-}
-
-variable "app_version" {
-  description = "The application version"
-  default     = "001"
 }
 
 variable "aws_artifact_bucket_name" {
@@ -66,6 +65,16 @@ variable "db_password" {
   default     = "fedora-pw"
 }
 
+variable "volume_id" {
+  description = "The Id of the volume to be used for data storage. This volume must already exist and will not be destroyed when the infrastructure is destroyed"
+  default     = ""
+}
+
+variable "new_volume_size" {
+  description = "The size of a new volume to be used for data storage (in GB). This volume will be created and will be destroyed when the infrastructure is destroyed"
+  default     = 10
+}
+
 variable "instance_class" {
   description = "The Fedora ec2 instance class"
   default     = "t3.small"
@@ -74,3 +83,7 @@ variable "instance_class" {
 variable "ec2_keypair" {
   description = "The EC2 keypair to use in case you want to access the instance."
 }
+
+//
+// end of file
+//
