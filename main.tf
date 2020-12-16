@@ -50,6 +50,33 @@ resource "aws_iam_role_policy_attachment" "attach_worker_tier" {
   policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier"
 }
 
+resource "aws_iam_role_policy_attachment" "attach_mount_volume_policy" {
+
+  role       = aws_iam_role.fcrepo.name
+  policy_arn = aws_iam_policy.mount-volume-policy.arn
+}
+
+resource "aws_iam_policy" "mount-volume-policy" {
+  name   = "${var.app_name}-${var.app_environment}-mount-volume-policy"
+  policy = <<EOT
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:AttachVolume",
+                "ec2:DetachVolume"
+            ],
+            "Resource": [
+                "arn:aws:ec2:*:*:volume/*",
+                "arn:aws:ec2:*:*:instance/*"
+            ]
+        }
+    ]
+}
+EOT
+}
 
 resource "aws_iam_instance_profile" "fcrepo" {
 
@@ -155,7 +182,6 @@ resource "aws_db_instance" "fcrepo" {
   }
 }
 
-
 resource "aws_route_table_association" "fcrepo" {
 
   subnet_id      = aws_subnet.fcrepo_a.id
@@ -197,73 +223,126 @@ resource "aws_security_group" "fcrepo" {
   }
 }
 
-resource "aws_cloudwatch_log_group" "fcrepo" {
+//resource "aws_cloudwatch_log_group" "fcrepo" {
+//
+//  name = "${var.app_name}-${var.app_environment}"
+//
+//  tags = {
+//    Application = "${var.app_name}-${var.app_environment}"
+//  }
+//}
 
-  name = "${var.app_name}-${var.app_environment}"
+// only create this if a volume ID was not provided
+resource "aws_ebs_volume" "fcrepo" {
+
+  count             = var.volume_id != "" ? 0 : 1
+  availability_zone = aws_subnet.fcrepo_a.availability_zone
+  size              = var.new_volume_size
+  type              = "gp2"
 
   tags = {
-    Application = "${var.app_name}-${var.app_environment}"
+    Name        = "${var.app_name}-ebs-${var.app_environment}"
   }
+}
+
+data "template_file" "ebs-config-content" {
+
+  template = file("elasticbeanstalk/01-ebs.config.template")
+
+  vars = {
+    region    = var.aws_region
+    volume_id = var.volume_id != "" ? var.volume_id : element( aws_ebs_volume.fcrepo.*.id, 0 )
+  }
+}
+
+data "template_file" "docker-run-content" {
+
+  template = file("elasticbeanstalk/Dockerrun.aws.json.template")
+
+  vars = {
+    version = var.fcrepo_version
+  }
+}
+
+resource "local_file" "ebs-config" {
+
+  filename = "output/.ebextensions/01-ebs.config"
+  content  = data.template_file.ebs-config-content.rendered
+}
+
+resource "local_file" "docker-run" {
+
+  filename = "output/Dockerrun.aws.json"
+  content  = data.template_file.docker-run-content.rendered
 }
 
 resource "null_resource" "prepare_beanstalk_zip" {
 
+  depends_on = [aws_s3_bucket.default]
+
+  triggers = {
+    dir_content = join( ",",
+       [ data.template_file.ebs-config-content.rendered, data.template_file.docker-run-content.rendered ]
+    )
+  }
+
   provisioner "local-exec" {
     command = <<EOT
-                mkdir output
-		sed "s/{{fcrepo.version}}/$FCREPO_VERSION/g" elasticbeanstalk/Dockerrun.aws.json.template > output/Dockerrun.aws.json
                 cd output
-                zip fcrepo-$FCREPO_VERSION-eb-docker.zip Dockerrun.aws.json
-  EOT
+                zip fcrepo-$FCREPO_VERSION-eb-docker.zip *.json .ebextensions/*
+                aws s3 cp fcrepo-$FCREPO_VERSION-eb-docker.zip s3://$BUCKET/fcrepo-$FCREPO_VERSION-eb-docker.zip
+EOT
       environment = {
-         FCREPO_VERSION = "${var.fcrepo_version}"
+        FCREPO_VERSION = var.fcrepo_version
+        BUCKET         = var.aws_artifact_bucket_name
       }
   }
 }
 
 resource "aws_s3_bucket" "default" {
 
-  depends_on = [null_resource.prepare_beanstalk_zip]
+  bucket = var.aws_artifact_bucket_name
+  acl    = "private"
 
-  bucket     = var.aws_artifact_bucket_name
-  acl        = "private"
+  // we drive our application version by the version of the beanstalk configuration payload
+  versioning {
+    enabled = true
+  }
 
   tags = {
-    Name        = "Fedora EB artifacts"
+    Name = var.aws_artifact_bucket_name
   }
 }
 
-resource "aws_s3_bucket_object" "eb_docker_zip" {
+data "aws_s3_bucket_object" "eb_docker_zip" {
 
-  bucket = aws_s3_bucket.default.id
-  key    = "fcrepo-${var.fcrepo_version}-eb-docker.zip"
-  source = "output/fcrepo-${var.fcrepo_version}-eb-docker.zip"
+  bucket     = aws_s3_bucket.default.id
+  key        = "fcrepo-${var.fcrepo_version}-eb-docker.zip"
 }
-
 
 resource "aws_elastic_beanstalk_application" "fcrepo" {
 
   name        = "${var.app_name}-${var.app_environment}"
-  description = "Fedora Repository"
+  description = "Fedora Repository (${var.app_environment})"
 
-  tags = {
-    Name= "${var.app_name}-${var.app_environment}-beanstalk-application"
-  }
+  //tags = {
+  //  Name = "${var.app_name}-${var.app_environment}"
+  //}
 }
 
 resource "aws_elastic_beanstalk_application_version" "default" {
 
-  name        = "${var.app_name}-${var.app_environment}-${var.app_version}"
+  name        = "${var.app_name}-${var.app_environment}-${data.aws_s3_bucket_object.eb_docker_zip.version_id}"
   application = aws_elastic_beanstalk_application.fcrepo.name
   description = "Application version created by Terraform"
   bucket      = aws_s3_bucket.default.id
-  key         = aws_s3_bucket_object.eb_docker_zip.id
+  key         = data.aws_s3_bucket_object.eb_docker_zip.key
 }
 
 
 resource "aws_elastic_beanstalk_environment" "fcrepo" {
 
-  depends_on =  [aws_elastic_beanstalk_application_version.default]
+  depends_on          =  [aws_elastic_beanstalk_application_version.default]
 
   name                = "${var.app_name}-${var.app_environment}"
   application         = aws_elastic_beanstalk_application.fcrepo.name
