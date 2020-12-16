@@ -301,8 +301,9 @@ EOT
 
 resource "aws_s3_bucket" "default" {
 
-  bucket = var.aws_artifact_bucket_name
-  acl    = "private"
+  bucket        = var.aws_artifact_bucket_name
+  acl           = "private"
+  force_destroy = true
 
   // we drive our application version by the version of the beanstalk configuration payload
   versioning {
