@@ -7,6 +7,21 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "app_name" {
+  description = "The application name"
+  default     = "fcrepo"
+}
+
+variable "app_environment" {
+  description = "The application environment"
+  default     = "staging"
+}
+
+variable "app_version" {
+  description = "The application version"
+  default     = "001"
+}
+
 variable "aws_artifact_bucket_name" {
   description = "An AWS S3 bucket name for staging generated beanstalk application artifacts for deployment. This bucket should should not exist prior to running 'terraform apply ...'. Additionally, any objects placed in the bucket   will be destroed on 'terraform destroy...'."
 }
@@ -36,14 +51,19 @@ variable "db_instance_class" {
   default     = "db.t2.micro"
 }
 
+variable "db_name" {
+  description = "database name"
+  default     = "fedora"
+}
+
 variable "db_username" {
   description = "database username"
-  default     = "fcrepo"
+  default     = "fedora"
 }
 
 variable "db_password" {
   description = "database password"
-  default     = "fcrepo-pw"
+  default     = "fedora-pw"
 }
 
 variable "instance_class" {
