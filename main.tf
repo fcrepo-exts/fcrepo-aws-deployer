@@ -317,6 +317,8 @@ resource "aws_s3_bucket" "default" {
 
 data "aws_s3_bucket_object" "eb_docker_zip" {
 
+  depends_on = [null_resource.prepare_beanstalk_zip]
+
   bucket     = aws_s3_bucket.default.id
   key        = "fcrepo-${var.fcrepo_version}-eb-docker.zip"
 }
