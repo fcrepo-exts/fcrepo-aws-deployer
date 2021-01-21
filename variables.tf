@@ -1,3 +1,7 @@
+//
+//
+//
+
 variable "aws_profile" {
   description = "name of the aws profile"
 }
@@ -5,6 +9,16 @@ variable "aws_profile" {
 variable "aws_region" {
   description = "The aws region"
   default     = "us-east-1"
+}
+
+variable "app_name" {
+  description = "The application name"
+  default     = "fcrepo"
+}
+
+variable "app_environment" {
+  description = "The application environment"
+  default     = "staging"
 }
 
 variable "aws_artifact_bucket_name" {
@@ -36,14 +50,29 @@ variable "db_instance_class" {
   default     = "db.t2.micro"
 }
 
+variable "db_name" {
+  description = "database name"
+  default     = "fedora"
+}
+
 variable "db_username" {
   description = "database username"
-  default     = "fcrepo"
+  default     = "fedora"
 }
 
 variable "db_password" {
   description = "database password"
-  default     = "fcrepo-pw"
+  default     = "fedora-pw"
+}
+
+variable "volume_id" {
+  description = "The Id of the volume to be used for data storage. This volume must already exist and will not be destroyed when the infrastructure is destroyed"
+  default     = ""
+}
+
+variable "new_volume_size" {
+  description = "The size of a new volume to be used for data storage (in GB). This volume will be created and will be destroyed when the infrastructure is destroyed"
+  default     = 10
 }
 
 variable "instance_class" {
@@ -54,3 +83,7 @@ variable "instance_class" {
 variable "ec2_keypair" {
   description = "The EC2 keypair to use in case you want to access the instance."
 }
+
+//
+// end of file
+//
