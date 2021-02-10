@@ -19,11 +19,6 @@ commands:
     ignoreErrors: true
   05format-if-not-already:
     command: if find /mnt/fedora-data/ -maxdepth 0 -empty | read v; then mkfs -t ext3 /dev/sdh; fi
-  06mount-volume:   
-    command: |
-      mkdir /mnt/fedora-data
-      mount /dev/sdh /mnt/fedora-data
-
 #
 # end of Terraform template
 #
