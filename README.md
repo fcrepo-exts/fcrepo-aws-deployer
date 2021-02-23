@@ -10,7 +10,7 @@ terraform  (https://www.terraform.io/downloads.html)
 
 After installing terraform 
 ```
-git clone https://github.com/lyrasis/fcrepo-terraform
+git clone https://github.com/fcrepo-exts/fcrepo-aws-deployer
 terraform init
 ```
 
