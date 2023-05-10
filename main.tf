@@ -302,6 +302,7 @@ EOT
 
 resource "aws_s3_bucket" "artifact" {
   bucket        = var.aws_artifact_bucket_name
+  force_destroy = true
   tags = {
     Name = var.aws_artifact_bucket_name
   }
