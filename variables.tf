@@ -41,8 +41,8 @@ variable "db_port" {
 }
 
 variable "db_version" {
-  description = "The database version: default 12.3 - supported  versions: postgresql 12.3, mariadb 10.5.3, mysql 8.0"
-  default     = "12.3"
+  description = "The database version: default 12.14 - supported  versions: postgresql 12.14, mariadb 10.6.10, mysql 8.0.32"
+  default     = "12.14"
 }
 
 variable "db_instance_class" {
