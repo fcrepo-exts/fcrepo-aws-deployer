@@ -169,7 +169,7 @@ resource "aws_db_instance" "fcrepo" {
   engine_version            = var.db_version
   port                      = var.db_port
   instance_class            = var.db_instance_class
-  name                      = var.db_name
+  db_name                      = var.db_name
   username                  = var.db_username
   password                  = var.db_password
   db_subnet_group_name      = aws_db_subnet_group.fcrepo_db_subnet_group.name
@@ -302,20 +302,35 @@ EOT
 resource "aws_s3_bucket" "default" {
 
   bucket        = var.aws_artifact_bucket_name
-  acl           = "private"
   force_destroy = true
-
-  // we drive our application version by the version of the beanstalk configuration payload
-  versioning {
-    enabled = true
-  }
 
   tags = {
     Name = var.aws_artifact_bucket_name
   }
 }
 
-data "aws_s3_bucket_object" "eb_docker_zip" {
+resource "aws_s3_bucket_ownership_controls" "ownership" {
+  bucket = aws_s3_bucket.default.id
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
+resource "aws_s3_bucket_acl" "bucket-acl" {
+  depends_on = [aws_s3_bucket_ownership_controls.ownership]
+  bucket     = aws_s3_bucket.default.id
+  acl        = "private"
+}
+
+// we drive our application version by the version of the beanstalk configuration payload versioning
+resource "aws_s3_bucket_versioning" "versioned" {
+  bucket   = aws_s3_bucket.default.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+data "aws_s3_object" "eb_docker_zip" {
 
   depends_on = [null_resource.prepare_beanstalk_zip]
 
@@ -335,11 +350,11 @@ resource "aws_elastic_beanstalk_application" "fcrepo" {
 
 resource "aws_elastic_beanstalk_application_version" "default" {
 
-  name        = "${var.app_name}-${var.app_environment}-${data.aws_s3_bucket_object.eb_docker_zip.version_id}"
+  name        = "${var.app_name}-${var.app_environment}-${data.aws_s3_object.eb_docker_zip.version_id}"
   application = aws_elastic_beanstalk_application.fcrepo.name
   description = "Application version created by Terraform"
   bucket      = aws_s3_bucket.default.id
-  key         = data.aws_s3_bucket_object.eb_docker_zip.key
+  key         = data.aws_s3_object.eb_docker_zip.key
 }
 
 
@@ -349,7 +364,7 @@ resource "aws_elastic_beanstalk_environment" "fcrepo" {
 
   name                = "${var.app_name}-${var.app_environment}"
   application         = aws_elastic_beanstalk_application.fcrepo.name
-  solution_stack_name = "64bit Amazon Linux 2 v3.2.2 running Docker"
+  solution_stack_name = var.eb_solution_stack_name
   version_label       = aws_elastic_beanstalk_application_version.default.name
 
   setting {

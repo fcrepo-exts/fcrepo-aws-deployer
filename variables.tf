@@ -4,6 +4,7 @@
 
 variable "aws_profile" {
   description = "name of the aws profile"
+  default     = "default"
 }
 
 variable "aws_region" {
@@ -22,7 +23,7 @@ variable "app_environment" {
 }
 
 variable "aws_artifact_bucket_name" {
-  description = "An AWS S3 bucket name for staging generated beanstalk application artifacts for deployment. This bucket should should not exist prior to running 'terraform apply ...'. Additionally, any objects placed in the bucket   will be destroed on 'terraform destroy...'."
+  description = "An AWS S3 bucket name for staging generated beanstalk application artifacts for deployment. This bucket should should not exist prior to running 'terraform apply ...'. Additionally, any objects placed in the bucket will be destroyed on 'terraform destroy...'."
 }
 
 variable "fcrepo_version" {
@@ -41,13 +42,13 @@ variable "db_port" {
 }
 
 variable "db_version" {
-  description = "The database version: default 12.3 - supported  versions: postgresql 12.3, mariadb 10.5.3, mysql 8.0"
-  default     = "12.3"
+  description = "The database version: default 15.10 - current versions: postgresql 12.20+, mariadb 10.5.20+, mysql 8.0.32+"
+  default     = "15.10"
 }
 
 variable "db_instance_class" {
   description = "The database instance class"
-  default     = "db.t2.micro"
+  default     = "db.t3.micro"
 }
 
 variable "db_name" {
@@ -80,6 +81,12 @@ variable "instance_class" {
   default     = "t3.small"
 }
 
+# https://docs.aws.amazon.com/elasticbeanstalk/latest/platforms/platform-history-docker.html
+variable "eb_solution_stack_name" {
+  default = "64bit Amazon Linux 2 v4.0.7 running Docker"
+}
+
+# keypairs are region specific
 variable "ec2_keypair" {
   description = "The EC2 keypair to use in case you want to access the instance."
 }
