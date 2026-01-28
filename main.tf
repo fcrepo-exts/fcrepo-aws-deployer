@@ -386,12 +386,6 @@ resource "aws_elastic_beanstalk_environment" "fcrepo" {
   }
 
   setting {
-    namespace = "aws:elasticbeanstalk:environment"
-    name      = "EnvironmentType"
-    value     = "SingleInstance"
-  }
-
-  setting {
     namespace = "aws:ec2:instances"
     name      = "InstanceTypes"
     value     = var.instance_class
@@ -409,6 +403,13 @@ resource "aws_elastic_beanstalk_environment" "fcrepo" {
     value     = var.ec2_keypair
   }
 
+setting {
+  namespace = "aws:autoscaling:launchconfiguration"
+  name      = "BlockDeviceMappings"
+  value     = "/dev/xvdf=:${var.new_volume_size}:${var.delete_new_volume_at_exit}:gp2"
+#default :10:true:gp2"
+}
+
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "CATALINA_OPTS"
@@ -416,6 +417,21 @@ resource "aws_elastic_beanstalk_environment" "fcrepo" {
   }
 }
 
+# Look up the EC2 instance created by EB
+# required only to output the IP address
+data "aws_instances" "eb_env" {
+  instance_tags = {
+    "elasticbeanstalk:environment-name" = aws_elastic_beanstalk_environment.fcrepo.name
+  }
+}
+
+data "aws_instance" "eb" {
+  instance_id = data.aws_instances.eb_env.ids[0]
+}
+
+output "fedora_address" {
+  value = "http://${data.aws_instance.eb.public_ip}/fcrepo/rest"
+}
 //
 // end of file
 //
