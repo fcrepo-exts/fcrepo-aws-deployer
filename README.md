@@ -1,7 +1,7 @@
 # fcrepo-aws-deployer
 A terraform script for automatically deploying a Fedora repository to AWS.
-By default, Fedora is deployed on a t3.small instance and is backed by postgresql 12.3  hosted in RDS on
-a db.t2.micro instance.
+By default, Fedora is deployed on a t3.small instance and is backed by postgresql 17.7  hosted in RDS on
+a db.t2.micro instance with a 10GB share. These can be configured in the variables.tf file. 
 
 ## Requirements
 terraform  (https://www.terraform.io/downloads.html)

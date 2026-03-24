@@ -42,8 +42,8 @@ variable "db_port" {
 }
 
 variable "db_version" {
-  description = "The database version: default 15.10 - current versions: postgresql 12.20+, mariadb 10.5.20+, mysql 8.0.32+"
-  default     = "15.10"
+  description = "The database version: default 17.7 - current versions: postgresql 12.22, mariadb 10.5.26+, mysql 8.0.32+"
+  default     = "17.7"
 }
 
 variable "db_instance_class" {
@@ -67,13 +67,18 @@ variable "db_password" {
 }
 
 variable "volume_id" {
-  description = "The Id of the volume to be used for data storage. This volume must already exist and will not be destroyed when the infrastructure is destroyed"
+  description = "The Id of the volume to be used for data storage. If the volume already exists, it will not be destroyed when the infrastructure is destroyed"
   default     = ""
 }
 
 variable "new_volume_size" {
-  description = "The size of a new volume to be used for data storage (in GB). This volume will be created and will be destroyed when the infrastructure is destroyed"
+  description = "The size of a new volume to be used for data storage (in GB). By default it will be destroyed when the infrastructure is destroyed (change behaviour with delete_new_volume_at_exit variable) "
   default     = 10
+}
+
+variable "delete_new_volume_at_exit" {
+  description = "The new volume will be destroyed when the infrastructure is destroyed"
+  default     = true
 }
 
 variable "instance_class" {
@@ -83,12 +88,12 @@ variable "instance_class" {
 
 # https://docs.aws.amazon.com/elasticbeanstalk/latest/platforms/platform-history-docker.html
 variable "eb_solution_stack_name" {
-  default = "64bit Amazon Linux 2 v4.0.7 running Docker"
+  default = "64bit Amazon Linux 2023 v4.8.0 running Docker"
 }
 
 # keypairs are region specific
 variable "ec2_keypair" {
-  description = "The EC2 keypair to use in case you want to access the instance."
+  description = "The EC2 keypair to use if you want to access the instance."
 }
 
 //
